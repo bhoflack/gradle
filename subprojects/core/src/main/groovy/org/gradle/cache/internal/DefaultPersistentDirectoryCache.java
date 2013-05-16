@@ -120,11 +120,13 @@ public class DefaultPersistentDirectoryCache extends DefaultPersistentDirectoryS
             LOGGER.debug("Invalidating {} as it was not closed cleanly.", this);
             return false;
         }
-        Properties currentProperties = GUtil.loadProperties(propertiesFile);
-        for (Map.Entry<?, ?> entry : properties.entrySet()) {
-            if (!entry.getValue().toString().equals(currentProperties.getProperty(entry.getKey().toString()))) {
-                LOGGER.debug("Invalidating {} as cache property {} has changed value.", this, entry.getKey());
-                return false;
+        if (propertiesFile.exists()) {
+            Properties currentProperties = GUtil.loadProperties(propertiesFile);
+            for (Map.Entry<?, ?> entry : properties.entrySet()) {
+                if (!entry.getValue().toString().equals(currentProperties.getProperty(entry.getKey().toString()))) {
+                    LOGGER.debug("Invalidating {} as cache property {} has changed value.", this, entry.getKey());
+                    return false;
+                }
             }
         }
         return true;

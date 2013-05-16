@@ -83,7 +83,8 @@ public class DefaultCacheAccess implements CacheAccess {
             if (lockMode == FileLockManager.LockMode.None) {
                 return;
             }
-            fileLock = lockManager.lock(lockFile, lockMode, cacheDiplayName);
+//            fileLock = lockManager.lock(lockFile, lockMode, cacheDiplayName);
+            fileLock = new DummyLock(lockFile, lockMode, cacheDiplayName);
             takeOwnership(String.format("Access %s", cacheDiplayName));
         } finally {
             lock.unlock();
@@ -277,7 +278,8 @@ public class DefaultCacheAccess implements CacheAccess {
         }
 
         long start = currentTimeMillis();
-        fileLock = lockManager.lock(lockFile, Exclusive, cacheDiplayName, operationStack.get().getDescription());
+//        fileLock = lockManager.lock(lockFile, Exclusive, cacheDiplayName, operationStack.get().getDescription());
+        fileLock = new DummyLock(lockFile, Exclusive, cacheDiplayName);
         stats.add("lock creation", start);
         for (MultiProcessSafePersistentIndexedCache<?, ?> cache : caches) {
             cache.onStartWork(operationStack.get().getDescription());
