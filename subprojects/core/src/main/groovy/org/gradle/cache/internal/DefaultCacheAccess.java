@@ -110,7 +110,6 @@ public class DefaultCacheAccess implements CacheAccess {
         } finally {
             lock.unlock();
         }
-        LOG.lifecycle("DefaultCacheAccess stats: {}", stats);
     }
 
     public FileLock getFileLock() {
@@ -277,10 +276,8 @@ public class DefaultCacheAccess implements CacheAccess {
             return false;
         }
 
-        long start = currentTimeMillis();
 //        fileLock = lockManager.lock(lockFile, Exclusive, cacheDiplayName, operationStack.get().getDescription());
         fileLock = new DummyLock(lockFile, Exclusive, cacheDiplayName);
-        stats.add("lock creation", start);
         for (MultiProcessSafePersistentIndexedCache<?, ?> cache : caches) {
             cache.onStartWork(operationStack.get().getDescription());
         }
@@ -296,9 +293,7 @@ public class DefaultCacheAccess implements CacheAccess {
             for (MultiProcessSafePersistentIndexedCache<?, ?> cache : caches) {
                 cache.onEndWork();
             }
-            long start = currentTimeMillis();
             fileLock.close();
-            stats.add("lock release", start);
         } finally {
             fileLock = null;
         }
