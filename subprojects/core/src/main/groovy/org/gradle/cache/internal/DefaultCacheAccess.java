@@ -16,7 +16,10 @@
 package org.gradle.cache.internal;
 
 import net.jcip.annotations.ThreadSafe;
+import org.gradle.api.logging.Logger;
+import org.gradle.api.logging.Logging;
 import org.gradle.cache.CacheAccess;
+import org.gradle.internal.Stats;
 import org.gradle.messaging.serialize.DefaultSerializer;
 import org.gradle.cache.PersistentIndexedCache;
 import org.gradle.cache.internal.btree.BTreePersistentIndexedCache;
@@ -34,10 +37,12 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import static java.lang.System.currentTimeMillis;
 import static org.gradle.cache.internal.FileLockManager.LockMode.Exclusive;
 
 @ThreadSafe
 public class DefaultCacheAccess implements CacheAccess {
+    private static final Logger LOG = Logging.getLogger(DefaultCacheAccess.class);
     private final String cacheDiplayName;
     private final File lockFile;
     private final FileLockManager lockManager;
@@ -48,6 +53,8 @@ public class DefaultCacheAccess implements CacheAccess {
     private Thread owner;
     private FileLockManager.LockMode lockMode;
     private FileLock fileLock;
+    private Stats stats = new Stats();
+
     private final ThreadLocal<CacheOperationStack> operationStack = new ThreadLocal<CacheOperationStack>() {
         @Override
         protected CacheOperationStack initialValue() {
@@ -102,6 +109,7 @@ public class DefaultCacheAccess implements CacheAccess {
         } finally {
             lock.unlock();
         }
+        LOG.lifecycle("DefaultCacheAccess stats: {}", stats);
     }
 
     public FileLock getFileLock() {
@@ -268,7 +276,9 @@ public class DefaultCacheAccess implements CacheAccess {
             return false;
         }
 
+        long start = currentTimeMillis();
         fileLock = lockManager.lock(lockFile, Exclusive, cacheDiplayName, operationStack.get().getDescription());
+        stats.add("lock creation", start);
         for (MultiProcessSafePersistentIndexedCache<?, ?> cache : caches) {
             cache.onStartWork(operationStack.get().getDescription());
         }
@@ -284,7 +294,9 @@ public class DefaultCacheAccess implements CacheAccess {
             for (MultiProcessSafePersistentIndexedCache<?, ?> cache : caches) {
                 cache.onEndWork();
             }
+            long start = currentTimeMillis();
             fileLock.close();
+            stats.add("lock release", start);
         } finally {
             fileLock = null;
         }
