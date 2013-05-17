@@ -13,13 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.gradle.language.base;
 
-import org.gradle.api.*;
+package org.gradle.invocation;
 
-/**
- * A container for project binaries, which represent physical artifacts that can run on a particular platform or runtime.
- * Added to a project by the {@link org.gradle.language.base.plugins.LanguageBasePlugin}.
- */
-@Incubating
-public interface BinariesContainer extends ExtensiblePolymorphicDomainObjectContainer<Binary> {}
+public interface BuildClassLoaderRegistry {
+    /**
+     * Registers a {@code ClassLoader} to make visible to all scripts.
+     */
+    void addRootClassLoader(ClassLoader classLoader);
+
+    /**
+     * Returns the root {@code ClassLoader} to use for all scripts, including init and settings scripts. This {@code ClassLoader} exposes the Gradle API
+     * plus any classes that are exposed using {@link #addRootClassLoader(ClassLoader)}.
+     *
+     * <p>This {@code ClassLoader} is also used to locate plugins by id.</p>
+     */
+    ClassLoader getScriptClassLoader();
+}

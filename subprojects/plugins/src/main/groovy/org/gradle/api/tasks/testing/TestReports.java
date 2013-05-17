@@ -1,5 +1,5 @@
 /*
- * Copyright 2010 the original author or authors.
+ * Copyright 2013 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.gradle.initialization;
 
-public interface ClassLoaderRegistry {
-    /**
-     * Returns the root class loader shared by all builds. This class loader exposes the Gradle API and built-in plugins.
-     */
-    ClassLoader getRootClassLoader();
+package org.gradle.api.tasks.testing;
 
-    /**
-     * Returns the class loader for the coreImpl project.
-     */
-    ClassLoader getCoreImplClassLoader();
+import org.gradle.api.reporting.ConfigureableReport;
+import org.gradle.api.reporting.DirectoryReport;
+import org.gradle.api.reporting.ReportContainer;
 
-    /**
-     * Returns the class loader for the plugins.
-     */
-    ClassLoader getPluginsClassLoader();
+/**
+ * The reports produced by the {@link Test} task.
+ */
+public interface TestReports extends ReportContainer<ConfigureableReport> {
+
+    DirectoryReport getHtml();
+
+    DirectoryReport getJunitXml();
+
 }

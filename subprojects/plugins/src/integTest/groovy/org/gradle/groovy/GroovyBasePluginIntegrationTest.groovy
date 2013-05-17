@@ -16,6 +16,7 @@
 package org.gradle.groovy
 
 import org.gradle.integtests.fixtures.AbstractIntegrationSpec
+import spock.lang.Issue
 
 class GroovyBasePluginIntegrationTest extends AbstractIntegrationSpec {
     def "defaults groovyClasspath to 'groovy' configuration if the latter is non-empty"() {
@@ -140,5 +141,32 @@ task verify << {
 
         then:
         errorOutput.contains "Cannot infer Groovy class path because no Groovy Jar was found on class path: configuration ':compile'"
+    }
+
+    @Issue("http://issues.gradle.org/browse/GRADLE-2773")
+    def "no deprecation warning is issued when the user explicitly 'adds' a groovy config"() {
+        when:
+        buildFile << """
+            apply plugin: "groovy-base"
+
+            sourceSets {
+                main {}
+            }
+
+            configurations {
+                groovy
+            }
+
+            dependencies {
+                groovy localGroovy()
+            }
+        """
+
+        file("src/main/groovy/Thing.groovy") << """
+            class Thing {}
+        """
+
+        then:
+        succeeds "compileGroovy" // no deprecation warning
     }
 }
