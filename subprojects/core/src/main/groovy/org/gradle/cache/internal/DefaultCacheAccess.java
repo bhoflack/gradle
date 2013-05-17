@@ -291,7 +291,7 @@ public class DefaultCacheAccess implements CacheAccess {
 
         try {
             for (MultiProcessSafePersistentIndexedCache<?, ?> cache : caches) {
-                cache.onEndWork();
+//                cache.onEndWork();
             }
             fileLock.close();
         } finally {
