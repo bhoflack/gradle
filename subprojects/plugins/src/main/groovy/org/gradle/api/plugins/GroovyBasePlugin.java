@@ -18,9 +18,11 @@ package org.gradle.api.plugins;
 
 import org.gradle.api.Action;
 import org.gradle.api.Plugin;
+import org.gradle.api.Rule;
 import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.Dependency;
 import org.gradle.api.file.FileTreeElement;
+import org.gradle.api.internal.artifacts.configurations.ConfigurationContainerInternal;
 import org.gradle.api.internal.file.FileResolver;
 import org.gradle.api.internal.plugins.DslObject;
 import org.gradle.api.internal.project.ProjectInternal;
@@ -80,9 +82,20 @@ public class GroovyBasePlugin implements Plugin<ProjectInternal> {
     }
 
     private void configureConfigurations(ProjectInternal project) {
-        Configuration groovyConfiguration = project.getConfigurations().create(GROOVY_CONFIGURATION_NAME).setVisible(false).
-                setDescription("The Groovy libraries to be used for this Groovy project. (Deprecated)");
-        deprecateGroovyConfiguration(groovyConfiguration);
+        final ConfigurationContainerInternal configurations = project.getConfigurations();
+        configurations.addRule(new Rule() {
+            public String getDescription() {
+                return "groovy configuration";
+            }
+
+            public void apply(String domainObjectName) {
+                if (domainObjectName.equals(GROOVY_CONFIGURATION_NAME)) {
+                    Configuration configuration = configurations.create(GROOVY_CONFIGURATION_NAME).setVisible(false).
+                            setDescription("The Groovy libraries to be used for this Groovy project. (Deprecated)");
+                    deprecateGroovyConfiguration(configuration);
+                }
+            }
+        });
     }
 
     private void configureGroovyRuntimeExtension() {
