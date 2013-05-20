@@ -16,29 +16,66 @@
 package org.gradle.api.internal.changedetection.state;
 
 import org.gradle.cache.PersistentIndexedCache;
+import org.gradle.internal.id.IdGenerator;
+import org.gradle.internal.id.RandomLongIdGenerator;
+import org.gradle.messaging.serialize.DataStreamBackedSerializer;
+
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 
 public class CacheBackedFileSnapshotRepository implements FileSnapshotRepository {
-    private final PersistentIndexedCache<Object, Object> cache;
+    private final PersistentIndexedCache<Long, FileCollectionSnapshot> cache;
+    private IdGenerator<Long> generator = new RandomLongIdGenerator();
 
     public CacheBackedFileSnapshotRepository(TaskArtifactStateCacheAccess cacheAccess) {
-        cache = cacheAccess.createCache("fileSnapshots", Object.class, Object.class);
+        cache = cacheAccess.createCache("fileSnapshots", Long.class, FileCollectionSnapshot.class, new FileSnapshotSerializer());
     }
 
     public Long add(FileCollectionSnapshot snapshot) {
-        Long id = (Long) cache.get("nextId");
-        if (id == null) {
-            id = 1L;
-        }
-        cache.put("nextId", id + 1);
+        Long id = generator.generateId();
         cache.put(id, snapshot);
         return id;
     }
 
     public FileCollectionSnapshot get(Long id) {
-        return (FileCollectionSnapshot) cache.get(id);
+        return cache.get(id);
     }
 
     public void remove(Long id) {
         cache.remove(id);
+    }
+
+    static class FileSnapshotSerializer extends DataStreamBackedSerializer<FileCollectionSnapshot> {
+        @Override
+        public FileCollectionSnapshot read(DataInput dataInput) throws Exception {
+            int kind = dataInput.readInt();
+            if (kind == 1) {
+                DefaultFileSnapshotter.Serializer serializer = new DefaultFileSnapshotter.Serializer();
+                return serializer.read(dataInput);
+            } else if (kind == 2) {
+                OutputFilesSnapshotter.Serializer serializer = new OutputFilesSnapshotter.Serializer();
+                return serializer.read(dataInput);
+            } else {
+                throw new RuntimeException("Unable to rad from file snapshot cache. Unexpected value read.");
+            }
+        }
+
+        @Override
+        public void write(DataOutput dataOutput, FileCollectionSnapshot value) throws IOException {
+            if (value instanceof DefaultFileSnapshotter.FileCollectionSnapshotImpl) {
+                dataOutput.writeInt(1);
+                DefaultFileSnapshotter.FileCollectionSnapshotImpl cached = (DefaultFileSnapshotter.FileCollectionSnapshotImpl) value;
+                DefaultFileSnapshotter.Serializer serializer = new DefaultFileSnapshotter.Serializer();
+                serializer.write(dataOutput, cached);
+            } else if (value instanceof OutputFilesSnapshotter.OutputFilesSnapshot) {
+                dataOutput.writeInt(2);
+                OutputFilesSnapshotter.OutputFilesSnapshot cached = (OutputFilesSnapshotter.OutputFilesSnapshot) value;
+                OutputFilesSnapshotter.Serializer serializer = new OutputFilesSnapshotter.Serializer();
+                serializer.write(dataOutput, cached);
+            } else {
+                throw new RuntimeException("Unable to write to file snapshot cache. Unexpected type to write: " + value);
+            }
+        }
     }
 }
